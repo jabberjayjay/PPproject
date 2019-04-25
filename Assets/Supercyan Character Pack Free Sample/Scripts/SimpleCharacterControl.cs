@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.Assertions;
 
 public class SimpleCharacterControl : MonoBehaviour {
 
@@ -9,11 +10,15 @@ public class SimpleCharacterControl : MonoBehaviour {
         Direct
     }
 
+    [SerializeField] private AudioClip sfxJump;
+    [SerializeField] private AudioClip sfxDeath;
+
     [SerializeField] private float m_moveSpeed = 2;
     [SerializeField] private float m_turnSpeed = 200;
     [SerializeField] private float m_jumpForce = 4;
     [SerializeField] private Animator m_animator;
     [SerializeField] private Rigidbody m_rigidBody;
+    private AudioSource audioSource;
 
     [SerializeField] private ControlMode m_controlMode = ControlMode.Direct;
 
@@ -33,6 +38,13 @@ public class SimpleCharacterControl : MonoBehaviour {
 
     private bool m_isGrounded;
     private List<Collider> m_collisions = new List<Collider>();
+
+
+    private void Awake()
+    {
+        Assert.IsNotNull(sfxJump);
+        Assert.IsNotNull(sfxDeath);
+    }
 
     private void OnCollisionEnter(Collision collision)
     {
@@ -163,6 +175,22 @@ public class SimpleCharacterControl : MonoBehaviour {
             transform.rotation = Quaternion.LookRotation(m_currentDirection);
             transform.position += m_currentDirection * m_moveSpeed * Time.deltaTime;
 
+            
+            transform.position = new Vector3(transform.position.x, transform.position.y, 10);
+            
+
+            if (transform.position.x < -4)
+            {
+                transform.position = new Vector3(-4, transform.position.y, 10);
+            }
+
+            if (transform.position.x > 19)
+            {
+                transform.position = new Vector3(19, transform.position.y, 10);
+            }
+
+
+
             m_animator.SetFloat("MoveSpeed", direction.magnitude);
         }
 
@@ -171,12 +199,15 @@ public class SimpleCharacterControl : MonoBehaviour {
 
     private void JumpingAndLanding()
     {
+        audioSource = GetComponent<AudioSource>();
+
         bool jumpCooldownOver = (Time.time - m_jumpTimeStamp) >= m_minJumpInterval;
 
         if (jumpCooldownOver && m_isGrounded && Input.GetKey(KeyCode.Space))
         {
             m_jumpTimeStamp = Time.time;
             m_rigidBody.AddForce(Vector3.up * m_jumpForce, ForceMode.Impulse);
+            audioSource.PlayOneShot(sfxJump);
         }
 
         if (!m_wasGrounded && m_isGrounded)
