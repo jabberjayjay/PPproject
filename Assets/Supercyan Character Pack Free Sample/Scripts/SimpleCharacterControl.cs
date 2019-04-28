@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
-using UnityEngine.Assertions;
 
 public class SimpleCharacterControl : MonoBehaviour {
 
@@ -9,6 +8,8 @@ public class SimpleCharacterControl : MonoBehaviour {
         Tank,
         Direct
     }
+
+    [SerializeField] private AudioClip sfxCoin;
 
     [SerializeField] private AudioClip sfxJump;
     [SerializeField] private AudioClip sfxDeath;
@@ -19,6 +20,7 @@ public class SimpleCharacterControl : MonoBehaviour {
     [SerializeField] private Animator m_animator;
     [SerializeField] private Rigidbody m_rigidBody;
     private AudioSource audioSource;
+
 
     [SerializeField] private ControlMode m_controlMode = ControlMode.Direct;
 
@@ -39,13 +41,6 @@ public class SimpleCharacterControl : MonoBehaviour {
     private bool m_isGrounded;
     private List<Collider> m_collisions = new List<Collider>();
 
-
-    private void Awake()
-    {
-        Assert.IsNotNull(sfxJump);
-        Assert.IsNotNull(sfxDeath);
-    }
-
     private void OnCollisionEnter(Collision collision)
     {
         ContactPoint[] contactPoints = collision.contacts;
@@ -59,6 +54,25 @@ public class SimpleCharacterControl : MonoBehaviour {
                 m_isGrounded = true;
             }
         }
+
+        if (collision.transform.tag == "coin")
+        {
+            audioSource = GetComponent<AudioSource>();
+
+
+
+            audioSource.PlayOneShot(sfxCoin);
+
+            KeepScore.Score += 100;
+            Debug.Log("Coin hit");
+
+
+            //Destroy(gameObject);
+
+
+
+        }
+
     }
 
     private void OnCollisionStay(Collision collision)
@@ -116,6 +130,7 @@ public class SimpleCharacterControl : MonoBehaviour {
                 Debug.LogError("Unsupported state");
                 break;
         }
+
 
         m_wasGrounded = m_isGrounded;
     }
@@ -175,23 +190,22 @@ public class SimpleCharacterControl : MonoBehaviour {
             transform.rotation = Quaternion.LookRotation(m_currentDirection);
             transform.position += m_currentDirection * m_moveSpeed * Time.deltaTime;
 
-            
-            transform.position = new Vector3(transform.position.x, transform.position.y, 10);
-            
-
-            if (transform.position.x < -4)
-            {
-                transform.position = new Vector3(-4, transform.position.y, 10);
-            }
-
-            if (transform.position.x > 19)
-            {
-                transform.position = new Vector3(19, transform.position.y, 10);
-            }
-
-
-
             m_animator.SetFloat("MoveSpeed", direction.magnitude);
+        }
+
+
+
+        transform.position = new Vector3(transform.position.x, transform.position.y, 10);
+
+
+        if (transform.position.x < -4)
+        {
+            transform.position = new Vector3(-4, transform.position.y, 10);
+        }
+
+        if (transform.position.x > 19)
+        {
+            transform.position = new Vector3(19, transform.position.y, 10);
         }
 
         JumpingAndLanding();
@@ -199,9 +213,11 @@ public class SimpleCharacterControl : MonoBehaviour {
 
     private void JumpingAndLanding()
     {
+        bool jumpCooldownOver = (Time.time - m_jumpTimeStamp) >= m_minJumpInterval;
+
         audioSource = GetComponent<AudioSource>();
 
-        bool jumpCooldownOver = (Time.time - m_jumpTimeStamp) >= m_minJumpInterval;
+       
 
         if (jumpCooldownOver && m_isGrounded && Input.GetKey(KeyCode.Space))
         {
